@@ -20,6 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.generation.crudfarmacia.model.Categoria;
 import com.generation.crudfarmacia.repository.CategoriaRepository;
+import com.generation.crudfarmacia.repository.ProdutoRepository;
 
 import jakarta.validation.Valid;
 
@@ -30,6 +31,9 @@ public class CategoriaController {
 
 	@Autowired
 	private CategoriaRepository categoriaRepository;
+	
+	@Autowired
+	private ProdutoRepository produtoRepository;
 	
 	@GetMapping
 	public ResponseEntity<List<Categoria>> getAll () {
@@ -49,18 +53,28 @@ public class CategoriaController {
 	
 	@PostMapping
 	public ResponseEntity<Categoria> post(@Valid @RequestBody Categoria categoria) {
+		if(produtoRepository.existsById(categoria.getProduto().getId()))
 		return ResponseEntity.status(HttpStatus.CREATED)
 				.body(categoriaRepository.save(categoria));
+		
+		throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Produto não existe!", null);
 	}
 	
 	@PutMapping
 	public ResponseEntity<Categoria> put(@Valid @RequestBody Categoria categoria) {
-		return categoriaRepository.findById(categoria.getId())
-				.map(resposta -> ResponseEntity.status(HttpStatus.OK)
-					.body(categoriaRepository.save(categoria)))
-				.orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+		if (categoriaRepository.existsById(categoria.getId())) {
+			
+			if(produtoRepository.existsById(categoria.getProduto().getId()))
+				return ResponseEntity.status(HttpStatus.OK)
+						.body(categoriaRepository.save(categoria));
+			
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Produto não existe!", null);
+		}
+		
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+		
 	}
-	
+		
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@DeleteMapping("/{id}")
 	public void delete(@PathVariable Long id) {
